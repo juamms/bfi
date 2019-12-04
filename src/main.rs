@@ -1,5 +1,6 @@
 extern crate clap;
 use clap::{App, Arg};
+use io::Read;
 use std::collections::HashMap;
 use std::{fs, io, u8};
 
@@ -48,7 +49,7 @@ fn main() {
             '+' => data[pc] += 1,
             '-' => data[pc] -= 1,
             '.' => print!("{}", data[pc] as char),
-            ',' => continue,
+            ',' => data[pc] = get_char(),
             '[' => {
                 if data[pc] == 0 {
                     ip = match jump_table.get(&ip) {
@@ -97,6 +98,16 @@ fn get_jump_table(program: &Vec<char>) -> HashMap<usize, usize> {
     }
 
     return table;
+}
+
+fn get_char() -> u8 {
+    let mut buffer: [u8; 1] = [0];
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+
+    handle.read_exact(&mut buffer).expect("Invalid input");
+
+    buffer[0]
 }
 
 fn find_loop_end(start: usize, program: &Vec<char>) -> usize {
