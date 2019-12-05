@@ -49,6 +49,18 @@ impl Machine {
         println!("IP: {}", self.instruction_pointer);
     }
 
+    pub fn current_program(&self) -> &Vec<Instruction> {
+        &self.program
+    }
+
+    pub fn intermediate_representation(&self) -> String {
+        self.program
+            .iter()
+            .map(|ins| format!("{:?}", ins))
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
+
     fn load_jump_table(&mut self) {
         for (idx, ins) in self.program.iter().enumerate() {
             if *ins == Instruction::LoopStart {
