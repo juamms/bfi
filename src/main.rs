@@ -1,8 +1,10 @@
 extern crate clap;
+
 use clap::{App, Arg};
-use io::Read;
-use std::collections::HashMap;
-use std::{fs, io, u8};
+use machine::Machine;
+use std::{fs, io};
+
+mod machine;
 
 fn main() {
     let matches = App::new("bfi")
@@ -18,6 +20,13 @@ fn main() {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("optimise")
+                .short("o")
+                .long("optimise")
+                .help("Optimise the program before running")
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("step")
                 .short("s")
                 .long("step")
@@ -27,105 +36,27 @@ fn main() {
         .get_matches();
 
     let file = matches.value_of("file").unwrap();
+    let optimise = matches.is_present("optimise");
+    let step = matches.is_present("step");
 
-    let program: Vec<char> = fs::read_to_string(file)
+    let raw_program: Vec<char> = fs::read_to_string(file)
         .expect(&format!("File '{}' does not exist", file))
         .chars()
         .filter(|c| ['>', '<', '+', '-', '.', ',', '[', ']'].contains(c))
         .collect();
 
-    let jump_table = get_jump_table(&program);
+    let mut machine = Machine::new(30_000);
+    machine.load_program(raw_program, optimise);
 
-    let mut data: [u8; 30_000] = [0; 30_000];
-    let mut pc = 0;
-    let mut ip = 0;
-
-    while ip < program.len() {
-        let token = program[ip];
-
-        match token {
-            '>' => pc += 1,
-            '<' => pc -= 1,
-            '+' => data[pc] += 1,
-            '-' => data[pc] -= 1,
-            '.' => print!("{}", data[pc] as char),
-            ',' => data[pc] = get_char(),
-            '[' => {
-                if data[pc] == 0 {
-                    ip = match jump_table.get(&ip) {
-                        Some(&jump) => jump,
-                        _ => panic!(format!("No matching ] for [ at IP '{}'", ip)),
-                    };
-                    continue;
-                }
-            }
-            ']' => {
-                if data[pc] != 0 {
-                    ip = match jump_table.get(&ip) {
-                        Some(&jump) => jump,
-                        _ => panic!(format!("No matching [ for ] at IP '{}'", ip)),
-                    };
-                    continue;
-                }
-            }
-            _ => {}
-        };
-
-        if matches.is_present("step") {
-            println!("{:?}", data[0..32].to_vec());
-            println!("PC: {}", pc);
-            println!("IP: {}", ip);
+    if step {
+        while !machine.has_program_ended() {
+            machine.step();
+            machine.dump();
 
             let mut _input = String::new();
             io::stdin().read_line(&mut _input).expect("???");
         }
-
-        ip += 1;
+    } else {
+        machine.run();
     }
-}
-
-fn get_jump_table(program: &Vec<char>) -> HashMap<usize, usize> {
-    let mut table = HashMap::new();
-
-    for (i, c) in program.iter().enumerate() {
-        if *c == '[' {
-            let start = i;
-            let end = find_loop_end(start, program);
-
-            table.insert(start, end + 1);
-            table.insert(end, start + 1);
-        }
-    }
-
-    return table;
-}
-
-fn get_char() -> u8 {
-    let mut buffer: [u8; 1] = [0];
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-
-    handle.read_exact(&mut buffer).expect("Invalid input");
-
-    buffer[0]
-}
-
-fn find_loop_end(start: usize, program: &Vec<char>) -> usize {
-    let mut end = start + 1;
-    let mut skips = 0;
-
-    while end < program.len() {
-        if program[end] == '[' {
-            skips += 1;
-        } else if program[end] == ']' {
-            if skips == 0 {
-                return end;
-            } else {
-                skips -= 1;
-            }
-        }
-        end += 1;
-    }
-
-    panic!("Unbalanced loops detected.")
 }
