@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, Read};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum Instruction {
     MoveRight(usize),
     MoveLeft(usize),
@@ -83,7 +83,40 @@ impl Machine {
     }
 
     fn load_optimised(&mut self, raw_program: Vec<char>) {
-        panic!("not implemented yet");
+        let mut idx = 0;
+        let mut instruction: Instruction;
+
+        while idx < raw_program.len() {
+            let token = raw_program[idx];
+
+            if ['>', '<', '+', '-'].contains(&token) {
+                let mut amount = 1;
+
+                while idx + 1 < raw_program.len() && raw_program[idx + 1] == token {
+                    idx += 1;
+                    amount += 1;
+                }
+
+                instruction = match token {
+                    '>' => Instruction::MoveRight(amount),
+                    '<' => Instruction::MoveLeft(amount),
+                    '+' => Instruction::Increment(amount as u8),
+                    '-' => Instruction::Decrement(amount as u8),
+                    _ => panic!(format!("Unknown token '{}'", token)),
+                }
+            } else {
+                instruction = match token {
+                    '[' => Instruction::LoopStart,
+                    ']' => Instruction::LoopEnd,
+                    ',' => Instruction::Read,
+                    '.' => Instruction::Write,
+                    _ => panic!(format!("Unknown token '{}'", token)),
+                };
+            }
+
+            self.program.push(instruction);
+            idx += 1;
+        }
     }
 
     fn load_unoptimised(&mut self, raw_program: Vec<char>) {
