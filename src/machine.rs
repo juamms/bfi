@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 
 #[derive(PartialEq, Debug)]
 pub enum Instruction {
@@ -250,6 +250,8 @@ impl Machine {
         let stdin = io::stdin();
         let mut handle = stdin.lock();
 
+        // This fixes an input issue with the Lost Kingdom game
+        let _ = io::stdout().flush();
         handle.read_exact(&mut buffer).expect("Invalid input");
 
         buffer[0]
