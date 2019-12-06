@@ -45,8 +45,7 @@ fn main() {
                 .short("e")
                 .long("emit")
                 .help("Emits the intermediate representation of the program to the given FILE")
-                .value_name("FILE")
-                .default_value("intermediate.txt"),
+                .value_name("FILE"),
         )
         .get_matches();
 
