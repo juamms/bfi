@@ -7,6 +7,7 @@ pub enum Instruction {
     MoveLeft(usize),
     Increment(u8),
     Decrement(u8),
+    Clear,
     LoopStart,
     LoopEnd,
     Read,
@@ -118,7 +119,17 @@ impl Machine {
                 }
             } else {
                 instruction = match token {
-                    '[' => Instruction::LoopStart,
+                    '[' => {
+                        if idx + 2 < raw_program.len()
+                            && raw_program[idx + 1] == '-'
+                            && raw_program[idx + 2] == ']'
+                        {
+                            idx += 2;
+                            Instruction::Clear
+                        } else {
+                            Instruction::LoopStart
+                        }
+                    }
                     ']' => Instruction::LoopEnd,
                     ',' => Instruction::Read,
                     '.' => Instruction::Write,
@@ -167,6 +178,7 @@ impl Machine {
             Instruction::MoveLeft(amount) => self.move_left(amount),
             Instruction::Increment(amount) => self.increment(amount),
             Instruction::Decrement(amount) => self.decrement(amount),
+            Instruction::Clear => self.clear(),
             Instruction::LoopStart => self.loop_start(),
             Instruction::LoopEnd => self.loop_end(),
             Instruction::Read => self.read_input(),
@@ -178,24 +190,33 @@ impl Machine {
         &mut self.data[self.data_pointer]
     }
 
+    fn next_instruction(&mut self) {
+        self.instruction_pointer += 1;
+    }
+
     fn move_right(&mut self, amount: usize) {
         self.data_pointer = self.data_pointer.wrapping_add(amount);
-        self.instruction_pointer += 1;
+        self.next_instruction()
     }
 
     fn move_left(&mut self, amount: usize) {
         self.data_pointer = self.data_pointer.wrapping_sub(amount);
-        self.instruction_pointer += 1;
+        self.next_instruction()
     }
 
     fn increment(&mut self, amount: u8) {
         *self.current_data() = self.current_data().wrapping_add(amount);
-        self.instruction_pointer += 1;
+        self.next_instruction()
     }
 
     fn decrement(&mut self, amount: u8) {
         *self.current_data() = self.current_data().wrapping_sub(amount);
-        self.instruction_pointer += 1;
+        self.next_instruction()
+    }
+
+    fn clear(&mut self) {
+        *self.current_data() = 0;
+        self.next_instruction()
     }
 
     fn find_jump(&self, instruction_pointer: &usize) -> usize {
@@ -212,7 +233,7 @@ impl Machine {
         if *self.current_data() == 0 {
             self.instruction_pointer = self.find_jump(&self.instruction_pointer);
         } else {
-            self.instruction_pointer += 1;
+            self.next_instruction()
         }
     }
 
@@ -220,7 +241,7 @@ impl Machine {
         if *self.current_data() != 0 {
             self.instruction_pointer = self.find_jump(&self.instruction_pointer);
         } else {
-            self.instruction_pointer += 1;
+            self.next_instruction()
         }
     }
 
@@ -236,11 +257,11 @@ impl Machine {
 
     fn read_input(&mut self) {
         *self.current_data() = self.get_char_from_input();
-        self.instruction_pointer += 1;
+        self.next_instruction()
     }
 
     fn write_output(&mut self) {
         print!("{}", *self.current_data() as char);
-        self.instruction_pointer += 1;
+        self.next_instruction()
     }
 }
