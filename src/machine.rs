@@ -45,12 +45,12 @@ impl Machine {
     }
 
     pub fn dump(&self) {
-        println!("{:?}", self.data[0..32].to_vec());
+        println!("{:?}", &self.data[0..32]);
         println!("DP: {}", self.data_pointer);
         println!("IP: {}", self.instruction_pointer);
     }
 
-    pub fn current_program(&self) -> &Vec<Instruction> {
+    pub fn current_program(&self) -> &[Instruction] {
         &self.program
     }
 
@@ -115,7 +115,7 @@ impl Machine {
                     '<' => Instruction::MoveLeft(amount),
                     '+' => Instruction::Increment(amount as u8),
                     '-' => Instruction::Decrement(amount as u8),
-                    _ => panic!(format!("Unknown token '{}'", token)),
+                    _ => unreachable!(),
                 }
             } else {
                 instruction = match token {
@@ -133,7 +133,7 @@ impl Machine {
                     ']' => Instruction::LoopEnd,
                     ',' => Instruction::Read,
                     '.' => Instruction::Write,
-                    _ => panic!(format!("Unknown token '{}'", token)),
+                    _ => unreachable!(),
                 };
             }
 
@@ -154,7 +154,7 @@ impl Machine {
                 ']' => Instruction::LoopEnd,
                 ',' => Instruction::Read,
                 '.' => Instruction::Write,
-                _ => panic!(format!("Unknown instruction '{}'", instruction)),
+                _ => unreachable!(),
             })
             .collect()
     }
@@ -222,10 +222,10 @@ impl Machine {
     fn find_jump(&self, instruction_pointer: &usize) -> usize {
         match self.jump_table.get(instruction_pointer) {
             Some(&jump) => jump,
-            _ => panic!(format!(
+            _ => panic!(
                 "Could not find jump table entry for instruction pointer '{}'",
                 self.instruction_pointer
-            )),
+            ),
         }
     }
 
@@ -246,15 +246,11 @@ impl Machine {
     }
 
     fn get_char_from_input(&self) -> u8 {
-        let mut buffer: [u8; 1] = [0];
         let stdin = io::stdin();
-        let mut handle = stdin.lock();
 
         // This fixes an input issue with the Lost Kingdom game
         let _ = io::stdout().flush();
-        handle.read_exact(&mut buffer).expect("Invalid input");
-
-        buffer[0]
+        stdin.bytes().next().expect("Invalid input").unwrap()
     }
 
     fn read_input(&mut self) {

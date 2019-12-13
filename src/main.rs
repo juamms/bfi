@@ -1,6 +1,7 @@
 extern crate clap;
 
 use clap::{App, Arg};
+use io::Read;
 use machine::Machine;
 use std::{fs, io};
 
@@ -103,7 +104,7 @@ fn main() {
             machine.dump();
 
             let mut _input = String::new();
-            io::stdin().read_line(&mut _input).expect("???");
+            io::stdin().bytes().next().expect("???").unwrap();
         }
     } else {
         machine.run();
