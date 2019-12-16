@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io::{self, Read, Write};
 
 #[derive(PartialEq, Debug)]
@@ -8,8 +7,8 @@ pub enum Instruction {
     Increment(u8),
     Decrement(u8),
     Clear,
-    LoopStart,
-    LoopEnd,
+    LoopStart(usize),
+    LoopEnd(usize),
     Read,
     Write,
 }
@@ -17,7 +16,6 @@ pub enum Instruction {
 pub struct Machine {
     program: Vec<Instruction>,
     data: Vec<u8>,
-    jump_table: HashMap<usize, usize>,
     instruction_pointer: usize,
     data_pointer: usize,
 }
@@ -28,7 +26,6 @@ impl Machine {
         Machine {
             program: Vec::new(),
             data: vec![0; size],
-            jump_table: HashMap::new(),
             instruction_pointer: 0,
             data_pointer: 0,
         }
@@ -41,7 +38,7 @@ impl Machine {
             self.load_unoptimised(raw_program);
         }
 
-        self.load_jump_table();
+        self.process_loops();
     }
 
     pub fn dump(&self) {
@@ -62,14 +59,14 @@ impl Machine {
             .join("\n")
     }
 
-    fn load_jump_table(&mut self) {
-        for (idx, ins) in self.program.iter().enumerate() {
-            if *ins == Instruction::LoopStart {
+    fn process_loops(&mut self) {
+        for idx in 0..self.program.len() {
+            if self.program[idx] == Instruction::LoopStart(0) {
                 let start = idx;
                 let end = self.find_loop_end(start);
 
-                self.jump_table.insert(start, end + 1);
-                self.jump_table.insert(end, start + 1);
+                self.program[start] = Instruction::LoopStart(end + 1);
+                self.program[end] = Instruction::LoopEnd(start + 1);
             }
         }
     }
@@ -79,9 +76,9 @@ impl Machine {
         let mut skips = 0;
 
         while end < self.program.len() {
-            if self.program[end] == Instruction::LoopStart {
+            if self.program[end] == Instruction::LoopStart(0) {
                 skips += 1;
-            } else if self.program[end] == Instruction::LoopEnd {
+            } else if self.program[end] == Instruction::LoopEnd(0) {
                 if skips == 0 {
                     return end;
                 }
@@ -127,10 +124,10 @@ impl Machine {
                             idx += 2;
                             Instruction::Clear
                         } else {
-                            Instruction::LoopStart
+                            Instruction::LoopStart(0)
                         }
                     }
-                    ']' => Instruction::LoopEnd,
+                    ']' => Instruction::LoopEnd(0),
                     ',' => Instruction::Read,
                     '.' => Instruction::Write,
                     _ => unreachable!(),
@@ -150,8 +147,8 @@ impl Machine {
                 '<' => Instruction::MoveLeft(1),
                 '+' => Instruction::Increment(1),
                 '-' => Instruction::Decrement(1),
-                '[' => Instruction::LoopStart,
-                ']' => Instruction::LoopEnd,
+                '[' => Instruction::LoopStart(0),
+                ']' => Instruction::LoopEnd(0),
                 ',' => Instruction::Read,
                 '.' => Instruction::Write,
                 _ => unreachable!(),
@@ -179,8 +176,8 @@ impl Machine {
             Instruction::Increment(amount) => self.increment(amount),
             Instruction::Decrement(amount) => self.decrement(amount),
             Instruction::Clear => self.clear(),
-            Instruction::LoopStart => self.loop_start(),
-            Instruction::LoopEnd => self.loop_end(),
+            Instruction::LoopStart(pointer) => self.loop_start(pointer),
+            Instruction::LoopEnd(pointer) => self.loop_end(pointer),
             Instruction::Read => self.read_input(),
             Instruction::Write => self.write_output(),
         }
@@ -219,27 +216,17 @@ impl Machine {
         self.next_instruction()
     }
 
-    fn find_jump(&self, instruction_pointer: &usize) -> usize {
-        match self.jump_table.get(instruction_pointer) {
-            Some(&jump) => jump,
-            _ => panic!(
-                "Could not find jump table entry for instruction pointer '{}'",
-                self.instruction_pointer
-            ),
-        }
-    }
-
-    fn loop_start(&mut self) {
+    fn loop_start(&mut self, pointer: usize) {
         if *self.current_data() == 0 {
-            self.instruction_pointer = self.find_jump(&self.instruction_pointer);
+            self.instruction_pointer = pointer;
         } else {
             self.next_instruction()
         }
     }
 
-    fn loop_end(&mut self) {
+    fn loop_end(&mut self, pointer: usize) {
         if *self.current_data() != 0 {
-            self.instruction_pointer = self.find_jump(&self.instruction_pointer);
+            self.instruction_pointer = pointer;
         } else {
             self.next_instruction()
         }
