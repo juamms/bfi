@@ -9,7 +9,7 @@ mod machine;
 
 fn main() {
     let matches = App::new("bfi")
-        .version("1.0.0")
+        .version("1.1.0")
         .about("An experimental Brainfuck interpreter")
         .arg(
             Arg::with_name("file")
