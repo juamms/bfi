@@ -43,11 +43,16 @@ fn main() {
         println!("Reading raw program from {:?}...", file)
     }
 
-    let raw_program: Vec<char> = fs::read_to_string(file)
-        .expect(&format!("File '{:?}' does not exist", file))
-        .chars()
-        .filter(|c| ['>', '<', '+', '-', '.', ',', '[', ']'].contains(c))
-        .collect();
+    let raw_program: Vec<char> = match fs::read_to_string(file) {
+        Ok(content) => content
+            .chars()
+            .filter(|c| ['>', '<', '+', '-', '.', ',', '[', ']'].contains(c))
+            .collect(),
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+    };
 
     let raw_size = raw_program.len();
     let mut machine = Machine::new(30_000);
