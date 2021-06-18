@@ -37,7 +37,7 @@ enum Instruction {
 ```
 
 
-With the exception of `Clear`, all of the instructions are matched 1-to-1 to Brainfuck instructions, with `1` as the value for `MoveRight`, `MoveLeft`, `Increment` and `Decrement` when running the program as-is. After parsing and optimising, the interpreter calculates jump positions for all `LoopStart` and `LoopEnd` matching tokens so that jumps are processed immediate. The interpreter panics if it finds unbalanced loop tokens.
+With the exception of `Clear`, all of the instructions are matched 1-to-1 to Brainfuck instructions, with `1` as the value for `MoveRight`, `MoveLeft`, `Increment` and `Decrement` when running the program as-is. After parsing and optimising, the interpreter calculates jump positions for all `LoopStart` and `LoopEnd` matching tokens so that jumps are processed immediately. The interpreter panics if it finds unbalanced loop tokens.
 
 ## Current optimisations
 
@@ -46,7 +46,7 @@ By enabling the optimise flag, the interpreter will apply the following optimisa
 * Consecutive `>`, `<`, `+`, `-` tokens are bundled together as a single instruction to the virtual machine (e.g. `>>>>` becomes `MoveRight(4)`);
 * When the interpreter finds the token sequence `[-]`, it substitutes that loop (which can have at most 255 iterations) to a single `Clear` instruction;
 
-As a reference, here's a few numbers when running some example programs unoptimised vs optimised with the `time` command:
+As a reference, here's a few numbers when running some example programs unoptimised vs optimised with the `time` command on a mid-2014 MacBook Pro:
 
 Program | Execution Time (u) | Execution Time (o) | Instructions (u) | Instructions (o)
 ------------ | ------------- | ------------ | ------------- | -------------
